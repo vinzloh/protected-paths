@@ -113,10 +113,10 @@ export default function (pi: ExtensionAPI) {
       /'([^']+)'/g,
       // Redirection targets: > path, >> path, < path
       /[<>]+\s*([^\s;|&<>]+)/g,
-      // Unquoted paths that look like file paths (must contain /)
+      // Unquoted paths that look like file paths (contain / or start with ./ ../)
       /(?:^|[;|&]|\$\()\s*([^\s;|&<>\"']+(?:\/[^\s;|&<>\"']+)+)/g,
-      // Paths starting with ./ or ../ or / (must have at least one char after)
-      /(?:^|[;|&]|\s)(\.\/[^\s;|&<>\"']+|\.\.\/[^\s;|&<>\"']+|\/[^\s;|&<>\"']+)/g,
+      // Paths starting with ./ or ../ or /
+      /(?:^|[;|&]|\s)(\.\/[^\s;|&<>\"']*|\.\.\/[^\s;|&<>\"']*|\/[^\s;|&<>\"']+)/g,
     ];
 
     const seenPaths = new Set<string>();
@@ -132,13 +132,13 @@ export default function (pi: ExtensionAPI) {
           if (potentialPath.startsWith("-")) continue;
 
           // Skip strings that don't look like paths
-          // A path must contain / or \ or start with ./ ../ or /
+          // A path should contain / or \ or start with . or be a single filename with extension
           const looksLikePath =
             potentialPath.includes("/") ||
             potentialPath.includes("\\") ||
-            potentialPath.startsWith("./") ||
-            potentialPath.startsWith("../") ||
-            potentialPath.startsWith("/");
+            potentialPath.startsWith(".") ||
+            potentialPath.startsWith("/") ||
+            /^[^\s/]+\.[^\s/.]+$/.test(potentialPath); // filename.ext
           if (!looksLikePath) continue;
 
           // Skip common non-file strings
