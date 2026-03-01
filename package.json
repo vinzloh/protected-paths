@@ -1,0 +1,23 @@
+{
+  "name": "protected-paths",
+  "version": "1.0.0",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  },
+  "scripts": {},
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "latest",
+    "@types/picomatch": "^4.0.2"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.2"
+  }
+}
