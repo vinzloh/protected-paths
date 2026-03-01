@@ -40,6 +40,12 @@ export default function (pi: ExtensionAPI) {
     return /git\s+commit\b/.test(command);
   }
 
+  function isGitShowCommand(command: string): boolean {
+    // Skip git show commands - they are read-only operations to view
+    // file contents at specific commits (e.g., git show HEAD:path/to/file)
+    return /git\s+show\b/.test(command);
+  }
+
   function validatePath(
     targetPath: string,
     ctx: any,
@@ -102,6 +108,11 @@ export default function (pi: ExtensionAPI) {
     // Skip git commit commands - commit messages contain file paths for
     // descriptive purposes, not actual file operations
     if (isCommitCommand(command)) {
+      return undefined;
+    }
+
+    // Skip git show commands - they are read-only operations
+    if (isGitShowCommand(command)) {
       return undefined;
     }
 
