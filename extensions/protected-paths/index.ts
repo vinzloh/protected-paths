@@ -122,6 +122,16 @@ export default function (pi: ExtensionAPI) {
           // Skip if it looks like a flag/option
           if (potentialPath.startsWith("-")) continue;
 
+          // Skip strings that don't look like paths
+          // A path should contain / or \ or start with . or be a single filename with extension
+          const looksLikePath =
+            potentialPath.includes("/") ||
+            potentialPath.includes("\\") ||
+            potentialPath.startsWith(".") ||
+            potentialPath.startsWith("/") ||
+            /^[^\s/]+\.[^\s/.]+$/.test(potentialPath); // filename.ext
+          if (!looksLikePath) continue;
+
           // Skip common non-file strings
           if (/^(true|false|null|undefined|http|https|ftp|git|ssh):/.test(potentialPath)) continue;
 
