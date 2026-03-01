@@ -34,6 +34,12 @@ export default function (pi: ExtensionAPI) {
     return undefined;
   });
 
+  function isCommitCommand(command: string): boolean {
+    // Skip git commit commands - commit messages often contain file paths
+    // for descriptive purposes, not actual file operations
+    return /git\s+commit\b/.test(command);
+  }
+
   function validatePath(
     targetPath: string,
     ctx: any,
@@ -93,13 +99,16 @@ export default function (pi: ExtensionAPI) {
     ctx: any,
     allowedPaths: string[]
   ): { block: true; reason: string } | undefined {
-    // Extract ALL potential file paths from the command and validate them
-    // This catches any command that operates on files, not just a whitelist
+    // Skip git commit commands - commit messages contain file paths for
+    // descriptive purposes, not actual file operations
+    if (isCommitCommand(command)) {
+      return undefined;
+    }
 
     // Match: quoted strings, unquoted paths (starts with ./, ../, /, or contains /)
     // Also matches paths after redirection operators (> >> <)
     const pathPatterns = [
-      // Quoted paths: "path/to/file" or '/path/to/file'
+      // Quoted paths: "path/to/file" or 'path/to/file'
       /"([^"]+)"/g,
       /'([^']+)'/g,
       // Redirection targets: > path, >> path, < path
