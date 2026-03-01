@@ -91,86 +91,40 @@ export default function (pi: ExtensionAPI) {
     ctx: any,
     allowedPaths: string[]
   ): { block: true; reason: string } | undefined {
-    // Commands that create/write/delete files
-    const writeCommands = [
-      "touch",
-      "cp",
-      "mv",
-      "rename",
-      "mkdir",
-      "mkfifo",
-      "mknod",
-      "rm",
-      "rmdir",
-      "unlink",
-      "tee",
-      "install",
-      "ln",
-      "link",
-      "symlink",
-      "chmod",
-      "chown",
-      "chattr",
-      "truncate",
-      "shred",
-      "dd",
-      "sed",
-      "awk",
-      "perl",
-      "rsync",
-      "scp",
-      "ftp",
-      "sftp",
-      "wget",
-      "curl",
-      "tar",
-      "untar",
-      "gzip",
-      "gunzip",
-      "zcat",
-      "zip",
-      "unzip",
-      "bzip2",
-      "bunzip2",
-      "xz",
-      "unxz",
-      "7z",
-      "ar",
-      "patch",
-      "git",
-      "hg",
-      "svn",
-      "snap",
-      "flatpak",
+    // Extract ALL potential file paths from the command and validate them
+    // This catches any command that operates on files, not just a whitelist
+
+    // Match: quoted strings, unquoted paths (starts with ./, ../, /, or contains /)
+    // Also matches paths after redirection operators (> >> <)
+    const pathPatterns = [
+      // Quoted paths: "path/to/file" or '/path/to/file'
+      /"([^"]+)"/g,
+      /'([^']+)'/g,
+      // Redirection targets: > path, >> path, < path
+      /[<>]+\s*([^\s;|&<>]+)/g,
+      // Unquoted paths that look like file paths (contain / or start with ./ ../)
+      /(?:^|[;|&]|\$\()\s*([^\s;|&<>\"']+(?:\/[^\s;|&<>\"']+)+)/g,
+      // Paths starting with ./ or ../ or /
+      /(?:^|[;|&]|\s)(\.\/[^\s;|&<>\"']*|\.\.\/[^\s;|&<>\"']*|\/[^\s;|&<>\"']+)/g,
     ];
 
-    // Check for redirection operators (>, >>)
-    const hasRedirection = />|>>/.test(command);
+    const seenPaths = new Set<string>();
 
-    // Extract potential file paths from the command
-    // Match quoted strings, unquoted paths, and paths after redirection operators
-    const pathRegex = /(?:^|[;|&]|\$\()\s*(\w+)\s+(?:"([^"]+)"|'([^']+)'|([^\s>;|&]+))/g;
-    const redirectRegex = />+\s*(?:"([^"]+)"|'([^']+)'|([^\s;|&]+))/g;
+    for (const pattern of pathPatterns) {
+      let match;
+      while ((match = pattern.exec(command)) !== null) {
+        const potentialPath = match[1]?.trim();
+        if (potentialPath && !seenPaths.has(potentialPath)) {
+          seenPaths.add(potentialPath);
 
-    let match;
+          // Skip if it looks like a flag/option
+          if (potentialPath.startsWith("-")) continue;
 
-    // Check commands
-    while ((match = pathRegex.exec(command)) !== null) {
-      const cmd = match[1];
-      const filePath = match[2] || match[3] || match[4];
+          // Skip common non-file strings
+          if (/^(true|false|null|undefined|http|https|ftp|git|ssh):/.test(potentialPath)) continue;
 
-      if (writeCommands.includes(cmd) && filePath) {
-        const result = validatePath(filePath, ctx, allowedPaths);
-        if (result) return result;
-      }
-    }
-
-    // Check redirection targets
-    if (hasRedirection) {
-      while ((match = redirectRegex.exec(command)) !== null) {
-        const filePath = match[1] || match[2] || match[3];
-        if (filePath) {
-          const result = validatePath(filePath, ctx, allowedPaths);
+          // Validate the path
+          const result = validatePath(potentialPath, ctx, allowedPaths);
           if (result) return result;
         }
       }
