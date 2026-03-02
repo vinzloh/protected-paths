@@ -155,6 +155,9 @@ export default function (pi: ExtensionAPI) {
           // Skip common non-file strings
           if (/^(true|false|null|undefined|http|https|ftp|git|ssh):/.test(potentialPath)) continue;
 
+          // Skip special device files (common redirection targets)
+          if (/^\/dev\/(null|zero|random|urandom|stdin|stdout|stderr)$/.test(potentialPath)) continue;
+
           // Validate the path
           const result = validatePath(potentialPath, ctx, allowedPaths);
           if (result) return result;
